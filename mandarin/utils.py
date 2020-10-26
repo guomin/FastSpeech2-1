@@ -5,7 +5,7 @@ import numpy as np
 import os
 
 import hparams
-
+from scipy.io import wavfile
 
 def process_text(train_text_path):
     with open(train_text_path, "r", encoding="utf-8") as f:
@@ -159,14 +159,20 @@ def pad(input_ele, mel_max_length=None):
         return out_padded
 
 
-def get_WaveGlow():
-    waveglow_path = os.path.join("waveglow", "pretrained_model")
-    waveglow_path = os.path.join(waveglow_path, "waveglow_256channels.pt")
-    wave_glow = torch.load(waveglow_path)['model']
-    wave_glow = wave_glow.remove_weightnorm(wave_glow)
-    wave_glow.cuda().eval()
-    for m in wave_glow.modules():
+def get_waveglow():
+    waveglow = torch.hub.load('nvidia/DeepLearningExamples:torchhub', 'nvidia_waveglow')
+    waveglow = waveglow.remove_weightnorm(waveglow)
+    waveglow.eval()
+    for m in waveglow.modules():
         if 'Conv' in str(type(m)):
             setattr(m, 'padding_mode', 'zeros')
 
-    return wave_glow
+    return waveglow
+
+
+def waveglow_infer(mel, waveglow, path):
+    with torch.no_grad():
+        wav = waveglow.infer(mel, sigma=1.0) * 32768.0
+        wav = wav.squeeze().cpu().numpy()
+    wav = wav.astype('int16')
+    wavfile.write(path, hparams.sample_rate, wav)

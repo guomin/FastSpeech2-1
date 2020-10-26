@@ -11,7 +11,6 @@ import audio
 import utils
 import dataset
 import model as M
-import waveglow
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -57,7 +56,8 @@ def get_data():
 
 if __name__ == "__main__":
     # Test
-    WaveGlow = utils.get_WaveGlow()
+    waveglow = utils.get_waveglow()
+    waveglow.to(device)
     parser = argparse.ArgumentParser()
     parser.add_argument('--step', type=int, default=0)
     parser.add_argument("--alpha", type=float, default=1.0)
@@ -72,8 +72,8 @@ if __name__ == "__main__":
             os.mkdir("results")
         wav = audio.inv_mel_spectrogram(mel)
         audio.save_wav(wav, "results/"+str(args.step)+"_"+str(i)+".wav")
-        waveglow.inference.inference(
-            mel_cuda, WaveGlow,
+        utils.waveglow_infer(
+            mel_cuda, waveglow,
             "results/"+str(args.step)+"_"+str(i)+"_waveglow.wav"
         )
         print("Done", i + 1)
