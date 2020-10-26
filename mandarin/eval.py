@@ -11,6 +11,7 @@ import audio
 import utils
 import dataset
 import model as M
+import waveglow
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -56,18 +57,23 @@ def get_data():
 
 if __name__ == "__main__":
     # Test
+    WaveGlow = utils.get_WaveGlow()
     parser = argparse.ArgumentParser()
     parser.add_argument('--step', type=int, default=0)
     parser.add_argument("--alpha", type=float, default=1.0)
     args = parser.parse_args()
 
-    print("use griffin-lim")
+    print("use griffin-lim and waveglow")
     model = get_DNN(args.step)
     data_list = get_data()
     for i, phn in enumerate(data_list):
-        mel, _ = synthesis(model, phn, args.alpha)
+        mel, mel_cuda = synthesis(model, phn, args.alpha)
         if not os.path.exists("results"):
             os.mkdir("results")
         wav = audio.inv_mel_spectrogram(mel)
         audio.save_wav(wav, "results/"+str(args.step)+"_"+str(i)+".wav")
+        waveglow.inference.inference(
+            mel_cuda, WaveGlow,
+            "results/"+str(args.step)+"_"+str(i)+"_waveglow.wav"
+        )
         print("Done", i + 1)
